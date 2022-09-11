@@ -8,8 +8,23 @@ public class PlayerController : MonoBehaviour
     PlayerStat _stat;
     Vector3 _destPos;       // 마우스 클릭 목적지 정보
 
+    Texture2D _attackIcon;
+    Texture2D _handIcon;
+
+    enum CursorType
+    {
+        None,
+        Attack,
+        Hand,
+    }
+
+    CursorType _cursorType = CursorType.None;
+
     void Start()
     {
+        _attackIcon = Managers.Resource.Load<Texture2D>("Textures/Cursor/Attack");
+        _handIcon = Managers.Resource.Load<Texture2D>("Textures/Cursor/Hand");
+
         _stat = gameObject.GetComponent<PlayerStat>();
 
         // 입력 관리 대리자 이벤트 추가, 키보드는 사용 안함.
@@ -72,6 +87,8 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        UpdateMouseCursor();
+
         switch (_state)
         {
             case PlayerState.Idle:
@@ -83,6 +100,34 @@ public class PlayerController : MonoBehaviour
             case PlayerState.Die:
                 UpdateDie();
                 break;
+        }
+    }
+
+    void UpdateMouseCursor()
+    {
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit, 100.0f, _mask))
+        {
+            if (hit.collider.gameObject.layer == (int)Define.Layer.Monster)
+            {
+                if (_cursorType != CursorType.Attack)
+                {
+                    Cursor.SetCursor(_attackIcon, new Vector2(_attackIcon.width / 5, 0), CursorMode.Auto);
+                    _cursorType = CursorType.Attack;
+                }
+            }
+
+            else if (hit.collider.gameObject.layer == (int)Define.Layer.Ground)
+            {
+                if (_cursorType != CursorType.Hand)
+                {
+                    Cursor.SetCursor(_handIcon, new Vector2(_handIcon.width / 3, 0), CursorMode.Auto);
+                    _cursorType = CursorType.Hand;
+                }
+            }
         }
     }
 

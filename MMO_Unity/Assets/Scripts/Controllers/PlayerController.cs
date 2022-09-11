@@ -5,13 +5,13 @@ using UnityEngine.AI;
 
 public class PlayerController : MonoBehaviour
 {
-    [SerializeField]
-    float _speed = 10.0f;
-
+    PlayerStat _stat;
     Vector3 _destPos;       // 마우스 클릭 목적지 정보
 
     void Start()
     {
+        _stat = gameObject.GetComponent<PlayerStat>();
+
         // 입력 관리 대리자 이벤트 추가, 키보드는 사용 안함.
         // Managers.Input.KeyAction -= OnKeyboard;     
         // Managers.Input.KeyAction += OnKeyboard;
@@ -24,6 +24,7 @@ public class PlayerController : MonoBehaviour
         Idle,
         Moving,
         Die,
+        Skill,
     }
 
     PlayerState _state = PlayerState.Idle;
@@ -46,7 +47,7 @@ public class PlayerController : MonoBehaviour
         else
         {
             NavMeshAgent nma = gameObject.GetOrAddComponent<NavMeshAgent>();
-            float moveDist = Mathf.Clamp(_speed * Time.deltaTime, 0, dir.magnitude);
+            float moveDist = Mathf.Clamp(_stat.MoveSpeed * Time.deltaTime, 0, dir.magnitude);
             nma.Move(dir.normalized * moveDist);
 
             Debug.DrawRay(transform.position + Vector3.up * 0.5f, dir, Color.green);
@@ -62,7 +63,7 @@ public class PlayerController : MonoBehaviour
         // 애니메이션
         Animator anim = GetComponent<Animator>();
         // 현재 게임 상태에 대한 정보를 넘겨줌
-        anim.SetFloat("speed", _speed);
+        anim.SetFloat("speed", _stat.MoveSpeed);
     }
     void UpdateDie()
     {
@@ -123,6 +124,9 @@ public class PlayerController : MonoBehaviour
     }
     */
 
+    int _mask = (1 << (int)Define.Layer.Ground) | (1 << (int)Define.Layer.Monster);     // 비트연산자 쓰는 이유 => 유니티에서 레이어를 구분할 때 32비트를 사용하지만
+                                                                                        // 이를 모두 사용하는 것이 아니라 오직 하나의 비트만 사용해서 해당 비트의 자리수로 레이어를 구분함.
+                                                                                        // 레이어의 총 갯수가 0~31까지 총 32개인 이유. 레이어의 index사용에 유의할 것.
     void OnMouseClicked(Define.MouseEvent evt)
     {
         if (_state == PlayerState.Die)
@@ -133,11 +137,20 @@ public class PlayerController : MonoBehaviour
 
         RaycastHit hit;
 
-        if (Physics.Raycast(ray, out hit, 100.0f, LayerMask.GetMask("Wall")))
+        if (Physics.Raycast(ray, out hit, 100.0f, _mask))
         {
             _destPos = hit.point;
             _state = PlayerState.Moving;
 
+            if (hit.collider.gameObject.layer == (int)Define.Layer.Monster)
+            {
+                Debug.Log("Monster Clicked");
+            }
+
+            else if (hit.collider.gameObject.layer == (int)Define.Layer.Ground)
+            {
+                Debug.Log("Ground Clicked");
+            }
         }
     }
 }

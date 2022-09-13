@@ -66,6 +66,8 @@ public class PlayerController : MonoBehaviour
             nma.Move(dir.normalized * moveDist);
 
             Debug.DrawRay(transform.position + Vector3.up * 0.5f, dir, Color.green);
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 15.0f * Time.deltaTime);
+
             if (Physics.Raycast(transform.position, dir, 1.0f, LayerMask.GetMask("Block")))
             {
                 if (Input.GetMouseButton(1))
@@ -73,8 +75,6 @@ public class PlayerController : MonoBehaviour
                 _state = PlayerState.Idle;
                 return;
             }
-
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 15.0f * Time.deltaTime);
         }
 
         // 애니메이션

@@ -30,8 +30,8 @@ public class PlayerController : MonoBehaviour
         // 입력 관리 대리자 이벤트 추가, 키보드는 사용 안함.
         // Managers.Input.KeyAction -= OnKeyboard;     
         // Managers.Input.KeyAction += OnKeyboard;
-        Managers.Input.MouseAction -= OnMouseClicked;
-        Managers.Input.MouseAction += OnMouseClicked;
+        Managers.Input.MouseAction -= OnMouseEvent;
+        Managers.Input.MouseAction += OnMouseEvent;
     }
 
     public enum PlayerState
@@ -68,6 +68,8 @@ public class PlayerController : MonoBehaviour
             Debug.DrawRay(transform.position + Vector3.up * 0.5f, dir, Color.green);
             if (Physics.Raycast(transform.position, dir, 1.0f, LayerMask.GetMask("Block")))
             {
+                if (Input.GetMouseButton(1))
+                    return;
                 _state = PlayerState.Idle;
                 return;
             }
@@ -105,6 +107,9 @@ public class PlayerController : MonoBehaviour
 
     void UpdateMouseCursor()
     {
+        if (Input.GetMouseButton(1))
+            return;
+
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
         RaycastHit hit;
@@ -172,30 +177,52 @@ public class PlayerController : MonoBehaviour
     int _mask = (1 << (int)Define.Layer.Ground) | (1 << (int)Define.Layer.Monster);     // 비트연산자 쓰는 이유 => 유니티에서 레이어를 구분할 때 32비트를 사용하지만
                                                                                         // 이를 모두 사용하는 것이 아니라 오직 하나의 비트만 사용해서 해당 비트의 자리수로 레이어를 구분함.
                                                                                         // 레이어의 총 갯수가 0~31까지 총 32개인 이유. 레이어의 index사용에 유의할 것.
-    void OnMouseClicked(Define.MouseEvent evt)
+    GameObject _lockTarget;
+
+    void OnMouseEvent(Define.MouseEvent evt)
     {
         if (_state == PlayerState.Die)
             return;
 
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        Debug.DrawRay(Camera.main.transform.position, ray.direction * 100.0f, Color.red, 1.0f);
-
         RaycastHit hit;
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        bool raycastHit = Physics.Raycast(ray, out hit, 100.0f, _mask);
+        // Debug.DrawRay(Camera.main.transform.position, ray.direction * 100.0f, Color.red, 1.0f);
 
-        if (Physics.Raycast(ray, out hit, 100.0f, _mask))
+        switch (evt)
         {
-            _destPos = hit.point;
-            _state = PlayerState.Moving;
+            case Define.MouseEvent.PointerDown:
+                if (raycastHit)
+                {
+                    _destPos = hit.point;
+                    _state = PlayerState.Moving;
 
-            if (hit.collider.gameObject.layer == (int)Define.Layer.Monster)
-            {
-                Debug.Log("Monster Clicked");
-            }
+                    if (hit.collider.gameObject.layer == (int)Define.Layer.Monster)
+                    {
+                        _lockTarget = hit.collider.gameObject;
+                        Debug.Log("Monster Clicked");
+                    }
 
-            else if (hit.collider.gameObject.layer == (int)Define.Layer.Ground)
-            {
-                Debug.Log("Ground Clicked");
-            }
+                    else if (hit.collider.gameObject.layer == (int)Define.Layer.Ground)
+                    {
+                        _lockTarget = null;
+                        Debug.Log("Ground Clicked");
+                    }
+                }
+                break;
+
+            case Define.MouseEvent.Press:
+                if(_lockTarget != null)
+                {
+                    _destPos = _lockTarget.transform.position;
+                }
+                else if (raycastHit)
+                        _destPos = hit.point;
+                break;
+
+            case Define.MouseEvent.PointerUp:
+                _lockTarget = null;
+                break;
         }
     }
 }

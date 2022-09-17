@@ -1,12 +1,29 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.SceneTemplate;
 using UnityEngine;
 using UnityEngine.AI;
 
 public class PlayerController : MonoBehaviour
 {
+    public enum PlayerState
+    {
+        Idle,
+        Moving,
+        Die,
+        Skill,
+    }
+
+    int _mask = (1 << (int)Define.Layer.Ground) | (1 << (int)Define.Layer.Monster);     // 비트연산자 쓰는 이유 => 유니티에서 레이어를 구분할 때 32비트를 사용하지만
+                                                                                        // 이를 모두 사용하는 것이 아니라 오직 하나의 비트만 사용해서 해당 비트의 자리수로 레이어를 구분함.
+                                                                                        // 레이어의 총 갯수가 0~31까지 총 32개인 이유. 레이어의 index사용에 유의할 것.
     PlayerStat _stat;
     Vector3 _destPos;       // 마우스 클릭 목적지 정보
+
+    [SerializeField]
+    PlayerState _state = PlayerState.Idle;
+
+    GameObject _lockTarget;
 
     void Start()
     {
@@ -19,17 +36,6 @@ public class PlayerController : MonoBehaviour
         Managers.Input.MouseAction += OnMouseEvent;
     }
 
-    public enum PlayerState
-    {
-        Idle,
-        Moving,
-        Die,
-        Skill,
-    }
-
-    [SerializeField]
-    PlayerState _state = PlayerState.Idle;
-
     // 변수 _state에 대한 프로퍼티, 애니메이션 변경 기능을 묶기 위함
     public PlayerState State
     {
@@ -41,17 +47,15 @@ public class PlayerController : MonoBehaviour
             switch (_state)
             {
                 case PlayerState.Idle:
-                    anim.SetFloat("speed", 0);
-                    anim.SetBool("attack", false);
+                    anim.CrossFade("WAIT", 0.1f);
                     break;
                 case PlayerState.Moving:
-                    anim.SetFloat("speed", _stat.MoveSpeed);
-                    anim.SetBool("attack", false);
+                    anim.CrossFade("RUN", 0.03f);
                     break;
                 case PlayerState.Die:
                     break;
                 case PlayerState.Skill:
-                    anim.SetBool("attack", true);
+                    anim.CrossFade("ATTACK", 0.1f, -1, 0);
                     break;
             }
         }
@@ -66,8 +70,9 @@ public class PlayerController : MonoBehaviour
     {
         if (_lockTarget != null)
         {
+            _destPos = _lockTarget.transform.position;
             float distance = (_destPos - transform.position).magnitude;
-            if (distance <= 1)
+            if (distance <= 1.0f)
             {
                 State = PlayerState.Skill;
                 return;
@@ -87,7 +92,6 @@ public class PlayerController : MonoBehaviour
             nma.Move(dir.normalized * moveDist);
 
             Debug.DrawRay(transform.position + Vector3.up * 0.5f, dir, Color.green);
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 15.0f * Time.deltaTime);
 
             if (Physics.Raycast(transform.position, dir, 1.0f, LayerMask.GetMask("Block")))
             {
@@ -96,6 +100,7 @@ public class PlayerController : MonoBehaviour
                 State = PlayerState.Idle;
                 return;
             }
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 15.0f * Time.deltaTime);
         }
 
     }
@@ -111,7 +116,14 @@ public class PlayerController : MonoBehaviour
 
     void OnHitEvent()
     {
-        State = PlayerState.Idle;
+        if (_stopSkill)
+        {
+            State = PlayerState.Idle;
+        }
+        else
+        {
+            State = PlayerState.Skill;
+        }
     }
 
     void Update()
@@ -133,54 +145,27 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    /* 키보드 입력 사용하던 부분
-    void OnKeyboard()
-    {
-        // 절대 회전값
-        //_yAngle += Time.deltaTime * 100;
-        // transform.eulerAngles = new Vector3(0.0f, _yAngle, 0.0f);
-
-        // + - delta
-        // transform.Rotate(new Vector3(0.0f, Time.deltaTime * 100.0f, 0.0f));
-
-        // Local -> World : TransformDirection
-        // World -> Local : InverseTransformDirection
-
-        if (Input.GetKey(KeyCode.W))
-        {
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(Vector3.fwd), 0.3f);
-            transform.position += Vector3.fwd * Time.deltaTime * _speed;
-        }
-        if (Input.GetKey(KeyCode.S))
-        {
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(Vector3.back), 0.3f);
-            transform.position += Vector3.back * Time.deltaTime * _speed;
-        }
-        if (Input.GetKey(KeyCode.A))
-        {
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(Vector3.left), 0.3f);
-            transform.position += Vector3.left * Time.deltaTime * _speed;
-        }
-        if (Input.GetKey(KeyCode.D))
-        {
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(Vector3.right), 0.3f);
-            transform.position += Vector3.right * Time.deltaTime * _speed;
-        }
-
-        _moveToDest = false;
-    }
-    */
-
-    int _mask = (1 << (int)Define.Layer.Ground) | (1 << (int)Define.Layer.Monster);     // 비트연산자 쓰는 이유 => 유니티에서 레이어를 구분할 때 32비트를 사용하지만
-                                                                                        // 이를 모두 사용하는 것이 아니라 오직 하나의 비트만 사용해서 해당 비트의 자리수로 레이어를 구분함.
-                                                                                        // 레이어의 총 갯수가 0~31까지 총 32개인 이유. 레이어의 index사용에 유의할 것.
-    GameObject _lockTarget;
+    bool _stopSkill = false;
 
     void OnMouseEvent(Define.MouseEvent evt)
     {
-        if (_state == PlayerState.Die)
-            return;
+        switch (State)
+        {
+            case PlayerState.Idle:
+                OnMouseEvent_IdleRun(evt);
+                break;
+            case PlayerState.Moving:
+                OnMouseEvent_IdleRun(evt);
+                break;
+            case PlayerState.Skill:
+                if (evt == Define.MouseEvent.PointerUp)
+                    _stopSkill = true;
+                break;
+        }
+    }
 
+    void OnMouseEvent_IdleRun(Define.MouseEvent evt)
+    {
         RaycastHit hit;
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         bool raycastHit = Physics.Raycast(ray, out hit, 100.0f, _mask);
@@ -193,6 +178,7 @@ public class PlayerController : MonoBehaviour
                 {
                     _destPos = hit.point;
                     State = PlayerState.Moving;
+                    _stopSkill = false;
 
                     if (hit.collider.gameObject.layer == (int)Define.Layer.Monster)
                     {
@@ -209,15 +195,12 @@ public class PlayerController : MonoBehaviour
                 break;
 
             case Define.MouseEvent.Press:
-                if(_lockTarget != null)
-                {
-                    _destPos = _lockTarget.transform.position;
-                }
-                else if (raycastHit)
-                        _destPos = hit.point;
+                if (_lockTarget == null && raycastHit)
+                    _destPos = hit.point;
                 break;
 
             case Define.MouseEvent.PointerUp:
+                _stopSkill = true;
                 break;
         }
     }

@@ -14,9 +14,12 @@ public class PlayerController : MonoBehaviour
         Skill,
     }
 
-    int _mask = (1 << (int)Define.Layer.Ground) | (1 << (int)Define.Layer.Monster);     // 비트연산자 쓰는 이유 => 유니티에서 레이어를 구분할 때 32비트를 사용하지만
+    int _mask = (1 << (int)Define.Layer.Ground) | (1 << (int)Define.Layer.Monster);     // 비트연산자 쓰는 이유 => 유니티에서 레이어를 구분할 때 32비트를 사용하지만.
                                                                                         // 이를 모두 사용하는 것이 아니라 오직 하나의 비트만 사용해서 해당 비트의 자리수로 레이어를 구분함.
                                                                                         // 레이어의 총 갯수가 0~31까지 총 32개인 이유. 레이어의 index사용에 유의할 것.
+    [SerializeField]
+    float _rotationSpeed = 15.0f;
+
     PlayerStat _stat;
     Vector3 _destPos;       // 마우스 클릭 목적지 정보
 
@@ -100,7 +103,7 @@ public class PlayerController : MonoBehaviour
                 State = PlayerState.Idle;
                 return;
             }
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 15.0f * Time.deltaTime);
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), _rotationSpeed * Time.deltaTime);
         }
 
     }
@@ -111,7 +114,12 @@ public class PlayerController : MonoBehaviour
 
     void UpdateSkill()
     {
-
+        if (_lockTarget != null)
+        {
+            Vector3 dir = _lockTarget.transform.position - transform.position;
+            Quaternion quat = Quaternion.LookRotation(dir);
+            transform.rotation = Quaternion.Lerp(transform.rotation, quat, _rotationSpeed * Time.deltaTime);
+        }
     }
 
     void OnHitEvent()

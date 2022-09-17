@@ -27,22 +27,58 @@ public class PlayerController : MonoBehaviour
         Skill,
     }
 
+    [SerializeField]
     PlayerState _state = PlayerState.Idle;
+
+    // 변수 _state에 대한 프로퍼티, 애니메이션 변경 기능을 묶기 위함
+    public PlayerState State
+    {
+        get { return _state; }
+        set
+        {
+            _state = value;
+            Animator anim = GetComponent<Animator>();
+            switch (_state)
+            {
+                case PlayerState.Idle:
+                    anim.SetFloat("speed", 0);
+                    anim.SetBool("attack", false);
+                    break;
+                case PlayerState.Moving:
+                    anim.SetFloat("speed", _stat.MoveSpeed);
+                    anim.SetBool("attack", false);
+                    break;
+                case PlayerState.Die:
+                    break;
+                case PlayerState.Skill:
+                    anim.SetBool("attack", true);
+                    break;
+            }
+        }
+    }
 
     void UpdateIdle()
     {
-        // 애니메이션
-        Animator anim = GetComponent<Animator>();
-        // 현재 게임 상태에 대한 정보를 넘겨줌
-        anim.SetFloat("speed", 0);
+
     }
 
     void UpdateMoving()
     {
+        if (_lockTarget != null)
+        {
+            float distance = (_destPos - transform.position).magnitude;
+            if (distance <= 1)
+            {
+                State = PlayerState.Skill;
+                return;
+            }
+        }
+
+        // 이동
         Vector3 dir = _destPos - transform.position;        // 가려는 목적지로의 방향벡터(크기가 1이진 않음.)
         if (dir.magnitude < 0.1f)        // 목적지에 도달한 경우
         {
-            _state = PlayerState.Idle;
+            State = PlayerState.Idle;
         }
         else
         {
@@ -57,19 +93,25 @@ public class PlayerController : MonoBehaviour
             {
                 if (Input.GetMouseButton(1))
                     return;
-                _state = PlayerState.Idle;
+                State = PlayerState.Idle;
                 return;
             }
         }
 
-        // 애니메이션
-        Animator anim = GetComponent<Animator>();
-        // 현재 게임 상태에 대한 정보를 넘겨줌
-        anim.SetFloat("speed", _stat.MoveSpeed);
     }
     void UpdateDie()
     {
 
+    }
+
+    void UpdateSkill()
+    {
+
+    }
+
+    void OnHitEvent()
+    {
+        State = PlayerState.Idle;
     }
 
     void Update()
@@ -84,6 +126,9 @@ public class PlayerController : MonoBehaviour
                 break;
             case PlayerState.Die:
                 UpdateDie();
+                break;
+            case PlayerState.Skill:
+                UpdateSkill();
                 break;
         }
     }
@@ -147,7 +192,7 @@ public class PlayerController : MonoBehaviour
                 if (raycastHit)
                 {
                     _destPos = hit.point;
-                    _state = PlayerState.Moving;
+                    State = PlayerState.Moving;
 
                     if (hit.collider.gameObject.layer == (int)Define.Layer.Monster)
                     {
@@ -173,7 +218,6 @@ public class PlayerController : MonoBehaviour
                 break;
 
             case Define.MouseEvent.PointerUp:
-                _lockTarget = null;
                 break;
         }
     }

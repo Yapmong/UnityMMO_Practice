@@ -126,10 +126,22 @@ public class PlayerController : MonoBehaviour
 
     void OnHitEvent()
     {
+        if (_lockTarget != null)
+        {
+            Stat targetStat = _lockTarget.GetComponent<Stat>();
+            PlayerStat myStat = gameObject.GetComponent<PlayerStat>();
+            int damage = Mathf.Max(0, myStat.Attack - targetStat.Defense);
+            Debug.Log(damage);
+            targetStat.Hp -= damage;
+        }
+    }
+
+    void EndHitAnim()
+    {
         if (_stopSkill)
         {
             State = PlayerState.Idle;
-        } 
+        }
         else
         {
             State = PlayerState.Skill;

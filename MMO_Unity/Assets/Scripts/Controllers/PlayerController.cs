@@ -18,7 +18,7 @@ public class PlayerController : MonoBehaviour
                                                                                         // 이를 모두 사용하는 것이 아니라 오직 하나의 비트만 사용해서 해당 비트의 자리수로 레이어를 구분함.
                                                                                         // 레이어의 총 갯수가 0~31까지 총 32개인 이유. 레이어의 index사용에 유의할 것.
     [SerializeField]
-    float _rotationSpeed = 15.0f;
+    float _rotationSpeed = 20.0f;
 
     PlayerStat _stat;
     Vector3 _destPos;       // 마우스 클릭 목적지 정보
@@ -37,6 +37,8 @@ public class PlayerController : MonoBehaviour
         // Managers.Input.KeyAction += OnKeyboard;
         Managers.Input.MouseAction -= OnMouseEvent;
         Managers.Input.MouseAction += OnMouseEvent;
+
+        Managers.UI.MakeWorldSpaceUI<UI_HPBar>(transform);
     }
 
     // 변수 _state에 대한 프로퍼티, 애니메이션 변경 기능을 묶기 위함
@@ -127,7 +129,7 @@ public class PlayerController : MonoBehaviour
         if (_stopSkill)
         {
             State = PlayerState.Idle;
-        }
+        } 
         else
         {
             State = PlayerState.Skill;

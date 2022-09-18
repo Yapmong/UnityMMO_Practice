@@ -9,6 +9,11 @@ public abstract class UI_Base : MonoBehaviour
 {
     public abstract void Init();
 
+    public void Start()
+    {
+        Init();
+    }
+
     Dictionary<Type, UnityEngine.Object[]> _objects = new Dictionary<Type, UnityEngine.Object[]>();
     protected void Bind<T>(Type type) where T : UnityEngine.Object
     {

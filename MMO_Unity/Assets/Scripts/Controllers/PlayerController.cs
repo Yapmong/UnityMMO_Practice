@@ -147,7 +147,7 @@ public class PlayerController : BaseController
                 break;
 
             case Define.MouseEvent.Press:
-                if (_lockTarget == null && raycastHit)
+                if (_lockTarget == null && raycastHit && hit.collider.gameObject.layer == (int)Define.Layer.Ground)
                     _destPos = hit.point;
                 break;
 

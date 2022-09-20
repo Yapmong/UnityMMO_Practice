@@ -101,7 +101,12 @@ public class PoolManager
     public Poolable Pop(GameObject original, Transform parent = null)
     {
         if (_pool.ContainsKey(original.name) == false)
-            CreatePool(original);
+        {
+            if (original.gameObject.tag == "Player")
+                CreatePool(original, 1);
+            else
+                CreatePool(original);
+        }
 
         return _pool[original.name].Pop(parent);
     }

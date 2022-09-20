@@ -22,6 +22,8 @@ public class PlayerController : BaseController
 
         if (gameObject.GetComponentInChildren<UI_HPBar>() == null)
             Managers.UI.MakeWorldSpaceUI<UI_HPBar>(transform);
+
+        WorldObjectType = Define.WorldObject.Player;
     }
 
     protected override void UpdateMoving()
@@ -75,9 +77,13 @@ public class PlayerController : BaseController
         if (_lockTarget != null)
         {
             Stat targetStat = _lockTarget.GetComponent<Stat>();
-            PlayerStat myStat = gameObject.GetComponent<PlayerStat>();
-            int damage = Mathf.Max(0, myStat.Attack - targetStat.Defense);
+            int damage = Mathf.Max(0, _stat.Attack - targetStat.Defense);
             targetStat.Hp -= damage;
+
+            if (targetStat.Hp <= 0)
+            {
+                Managers.Game.Despawn(_lockTarget);
+            }
         }
     }
 

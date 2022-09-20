@@ -17,6 +17,8 @@ public abstract class BaseController : MonoBehaviour
     [SerializeField]
     protected GameObject _lockTarget;
 
+    public Define.WorldObject WorldObjectType { get; protected set; } = Define.WorldObject.Unknown;
+
     // 변수 _state에 대한 프로퍼티, 애니메이션 변경 기능을 묶기 위함
     public virtual Define.State State
     {

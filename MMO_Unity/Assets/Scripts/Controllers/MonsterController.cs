@@ -9,7 +9,7 @@ public class MonsterController : BaseController
     Stat _stat;
 
     [SerializeField]
-    float _scanRange = 10.0f;
+    float _scanRange = 5.0f;
 
     [SerializeField]
     float _attackRange = 2.0f;
@@ -26,7 +26,7 @@ public class MonsterController : BaseController
 
     protected override void UpdateIdle()
     {
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        GameObject player = Managers.Game.GetPlayer();
         if (player == null)
             return;
 
@@ -83,38 +83,32 @@ public class MonsterController : BaseController
     void OnHitEvent()
     {
         Stat targetStat = _lockTarget.GetComponent<Stat>();
-        int damage = Mathf.Max(0, _stat.Attack - targetStat.Defense);
-        targetStat.Hp -= damage;
+        targetStat.OnAttacked(_stat);
     }
 
     void EndHitAnim()
     {
         if (_lockTarget != null)
         {
-            if (_lockTarget != null)
+            Stat targetStat = _lockTarget.GetComponent<Stat>();
+
+            if (targetStat.Hp <= 0)
             {
-                Stat targetStat = _lockTarget.GetComponent<Stat>();
-
-                if (targetStat.Hp <= 0)
-                {
-                    Managers.Game.Despawn(targetStat.gameObject);
-                    State = Define.State.Idle;
-                }
-
-                if (targetStat.Hp > 0)
-                {
-                    float distance = (_lockTarget.transform.position - transform.position).magnitude;
-                    if (distance <= _attackRange)
-                        State = Define.State.Skill;
-                    else
-                        State = Define.State.Idle;
-                }
-                else
-                {
-
-                }
+                State = Define.State.Idle;
             }
 
+            if (targetStat.Hp > 0)
+            {
+                float distance = (_lockTarget.transform.position - transform.position).magnitude;
+                if (distance <= _attackRange)
+                    State = Define.State.Skill;
+                else
+                    State = Define.State.Idle;
+            }
+            else
+            {
+
+            }
         }
 
         else
